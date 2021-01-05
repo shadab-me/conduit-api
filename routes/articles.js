@@ -2,10 +2,19 @@ const mongoose = require("mongoose");
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
+const Article = require("../models/article");
 
-router.post("/", auth, (req, res) => {
+router.post("/", auth, async (req, res) => {
   try {
-    res.send(req.user._doc);
+    const articleInfo = {
+      title: req.body.article.title,
+      description: req.body.article.description,
+      body: req.body.article.body,
+      tagList: req.body.article.tagList,
+    };
+    let author = req.user._doc._id;
+    const article = await Article.create({ ...articleInfo, author });
+    res.send(article);
   } catch (e) {
     res.send(e);
   }

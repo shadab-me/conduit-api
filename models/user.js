@@ -28,6 +28,8 @@ const userSchema = new mongoose.Schema(
       required: true,
       require,
     },
+    followers: [{ type: mongoose.Schema.Types.ObjectId }],
+    following: [{ type: mongoose.Schema.Types.ObjectId }],
   },
   { timestamps: true }
 );
@@ -36,7 +38,7 @@ userSchema.pre("save", async function (next) {
   if (user.password) {
     try {
       this.password = await bcrypt.hash(this.password, 8);
-      next();
+      next;
     } catch (e) {
       console.log(e);
     }
