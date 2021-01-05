@@ -5,10 +5,13 @@ async function auth(req, res, next) {
     let token = await req.header("Authorization").replace("Bearer", "");
     let decode = await jwt.decode(token, "thisismy");
     let user = await User.findById(decode.userId);
-    req.user = user;
+    if (!user) {
+      throw new Error();
+    }
+    req.user = { ...user, token };
     next();
   } catch (e) {
-    console.log(e);
+    res.status(401).send({ error: "Please authenticate" });
   }
 }
 module.exports = auth;
