@@ -6,12 +6,14 @@ const User = require("../models/user");
 router.get("/:username", async (req, res) => {
   try {
     const userName = await req.params.username;
-    let profile = await User.find({ username: userName });
-    res.send({ profile });
+    let userProfile = await User.findOne({ username: userName });
+    console.log(userProfile);
+    res.json(profile(userProfile));
   } catch (e) {
     console.log(e);
   }
 });
+
 router.post("/:username/follow", auth, async (req, res) => {
   try {
     const userName = req.params.username;
@@ -21,12 +23,12 @@ router.post("/:username/follow", auth, async (req, res) => {
     } else {
       let currentUser = req.user._doc._id;
       if (!user.followers.includes(currentUser)) {
-        const f = await User.findByIdAndUpdate(
+        const currentProfile = await User.findByIdAndUpdate(
           currentUser,
           { $push: { following: user._id } },
           { new: true }
         );
-        const u = await User.findByIdAndUpdate(
+        await User.findByIdAndUpdate(
           user._id,
           {
             $push: {
@@ -35,7 +37,7 @@ router.post("/:username/follow", auth, async (req, res) => {
           },
           { new: true }
         );
-        res.json(f);
+        res.json(profile(currentProfile));
       } else {
         res.json("Already following");
       }
@@ -44,5 +46,16 @@ router.post("/:username/follow", auth, async (req, res) => {
     res.json(e);
   }
 });
+
+function profile(user) {
+  return {
+    profile: {
+      username: user.username,
+      bio: user.bio,
+      image: user.image,
+      following: false,
+    },
+  };
+}
 
 module.exports = router;
