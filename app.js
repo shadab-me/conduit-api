@@ -8,7 +8,7 @@ require("./db/connection");
 var indexRouter = require("./routes/index");
 var usersRouter = require("./routes/users");
 const articlesRouter = require("./routes/articles");
-const profilesRouter = require("./routes/profiles");
+const profilesRouter = require("./routes/profile");
 const userRouter = require("./routes/user");
 const slug = require("slug");
 
@@ -48,7 +48,7 @@ app.use(function (err, req, res, next) {
 
 const Article = require("./models/article");
 const myMain = async () => {
-  let line = slug("hh shhs hss", { replacement: "-" });
+  let line = slug("", { replacement: "-", lower: true });
   console.log(line);
 };
 myMain();

@@ -18,16 +18,23 @@ router.get("/", async (req, res) => {
 
 router.post("/", auth, async (req, res) => {
   try {
-    let slug = slug(req.body.article.title, { replacement: "-" });
+    let slugDes = slug(req.body.article.title, {
+      replacement: "-",
+      lower: true,
+    });
+
     const articleInfo = {
-      slug: slug,
+      slug: slugDes,
       title: req.body.article.title,
       description: req.body.article.description,
       body: req.body.article.body,
       tagList: req.body.article.tagList,
     };
+    console.log(articleInfo);
     let author = req.user._doc._id;
-    const article = await Article.create({ ...articleInfo, author });
+    const article = await (await Article.create({ ...articleInfo, author }))
+      .populate("author", ["username", "bio", "image", "following"])
+      .execPopulate();
     res.send({ article });
   } catch (e) {
     res.send(e);
