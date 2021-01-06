@@ -10,6 +10,7 @@ var usersRouter = require("./routes/users");
 const articlesRouter = require("./routes/articles");
 const profilesRouter = require("./routes/profile");
 const userRouter = require("./routes/user");
+const tagsRouter = require("./routes/tags");
 const slug = require("slug");
 
 var app = express();
@@ -28,6 +29,7 @@ app.use("/", indexRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/articles", articlesRouter);
 app.use("/api/profiles", profilesRouter);
+app.use("/api/tags", tagsRouter);
 app.use("/api/user", userRouter);
 
 // catch 404 and forward to error handler
