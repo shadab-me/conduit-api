@@ -47,9 +47,6 @@ app.use(function (err, req, res, next) {
 });
 
 const Article = require("./models/article");
-const myMain = async () => {
-  let line = slug("", { replacement: "-", lower: true });
-  console.log(line);
-};
+const myMain = async () => {};
 myMain();
 module.exports = app;

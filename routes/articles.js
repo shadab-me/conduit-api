@@ -4,6 +4,7 @@ const router = express.Router();
 const auth = require("../middleware/auth");
 const Article = require("../models/article");
 const slug = require("slug");
+const Comment = require("../models/comment");
 
 router.get("/", async (req, res) => {
   try {
@@ -40,11 +41,10 @@ router.post("/", auth, async (req, res) => {
     res.send(e);
   }
 });
-router.delete("/:id", auth, async (req, res) => {
+router.delete("/:slug", auth, async (req, res) => {
   try {
-    const id = req.params.id;
-    console.log(id);
-    const article = await Article.findByIdAndDelete(id);
+    const slug = req.params.slug;
+    const article = await Article.findOneAndDelete({ slug: slug });
     res.send(article);
     console.log(article);
   } catch (e) {
@@ -57,4 +57,45 @@ router.put("/:id", auth, async (req, res) => {
   const article = await Article.findByIdAndUpdate(id, req.body, { new: true });
   res.json({ article });
 });
+
+// localhost:3000/articles/5ff586ab53de7837841037e4/comment
+router.get("/:slug/comments", auth, async (req, res) => {
+  try {
+    const currentSlug = req.params.slug;
+    const article = await Article.findOne({ slug: currentSlug })
+      .populate("comments")
+      .exec();
+    const comments = await article.comments;
+    res.json({ comments });
+  } catch (e) {
+    console.log(e);
+  }
+});
+router.post("/:slug/comment", auth, async (req, res) => {
+  try {
+    let currentSlug = req.params.slug;
+    const comment = await Comment.create({
+      body: req.body.comment.body,
+      author: req.user._doc._id,
+    });
+    console.log(comment);
+    const article = await Article.findOneAndUpdate(
+      { slug: currentSlug },
+      { $push: { comments: comment._id } },
+      { new: true }
+    );
+    res.send(article);
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+router.delete("/:slug/comments/:id", async (req, res) => {
+  const userSlug = req.params.slug;
+  const commentId = req.params.id;
+  const article = Article.findOne({ slug: userSlug });
+  const comment = Comment.findByIdAndDelete(commentId);
+  res.json(comment);
+});
+
 module.exports = router;

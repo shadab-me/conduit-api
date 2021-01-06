@@ -27,6 +27,7 @@ const articleSchema = new mongoose.Schema(
       required: true,
       ref: "Users",
     },
+    comments: [{ type: String, ref: "Comments" }],
   },
   { timestamps: true }
 );
