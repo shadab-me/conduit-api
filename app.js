@@ -10,6 +10,7 @@ var usersRouter = require("./routes/users");
 const articlesRouter = require("./routes/articles");
 const profilesRouter = require("./routes/profiles");
 const userRouter = require("./routes/user");
+const slug = require("slug");
 
 var app = express();
 
@@ -45,4 +46,10 @@ app.use(function (err, req, res, next) {
   res.render("error");
 });
 
+const Article = require("./models/article");
+const myMain = async () => {
+  let line = slug("hh shhs hss", { replacement: "-" });
+  console.log(line);
+};
+myMain();
 module.exports = app;
