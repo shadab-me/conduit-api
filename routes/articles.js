@@ -9,17 +9,47 @@ const User = require("../models/user");
 const article = require("../models/article");
 
 router.get("/", async (req, res, next) => {
-  let limit = 10;
-  const query = req.query;
+  let query = {};
+  const limitArticle = req.query.limit || 20;
+  const offset = req.query.offset || 0;
   try {
-    const articles = await Article.find({}).populate("author");
-    res.status(200).json({
-      articles: articles.map((article) =>
-        formatArticle(article, article.author)
-      ),
-    });
-  } catch (e) {
-    next(e);
+    if (req.query.tag) {
+      if (req.query.tag.split(",").length > 1) {
+        query["tagList"] = {
+          $in: req.query.tag.split(",").map((tag) => tag.toLowerCase()),
+        };
+      } else {
+        query["tagList"] = req.query.tag;
+      }
+    }
+    if (req.query.author) {
+      const author = await User.findOne({ username: req.query.author });
+      if (author) {
+        query["author"] = author.id;
+      } else {
+        throw new Error("Result Not Found");
+      }
+    }
+    if (req.query.favorited) {
+      const author = await User.findOne({ username: req.query.favorited });
+      query["favorites"] = author.id;
+    }
+
+    const articles = await Article.find(query)
+      .sort({ createdAt: "desc" })
+      .skip(+offset)
+      .limit(+limitArticle)
+      .populate("author");
+    res
+      .status(200)
+      .type("application/json")
+      .json({
+        articles: articles.map((article) =>
+          articleGenerator(article, article.author, req.userID)
+        ),
+      });
+  } catch (error) {
+    next({ message: "Result Not Found", error, status: 404 });
   }
 });
 
