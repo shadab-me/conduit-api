@@ -7,6 +7,7 @@ router.get("/:username", auth, async (req, res) => {
   try {
     const userName = await req.params.username;
     let userProfile = await User.findOne({ username: userName });
+    if (!userProfile) return res.status(404).json("Profile Not Found");
     const logInUser = await User.findById(req.user._doc._id);
     res.status(200).json(profile(userProfile, logInUser));
   } catch (err) {

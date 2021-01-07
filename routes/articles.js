@@ -92,10 +92,15 @@ router.get("/:slug/comments", auth, async (req, res) => {
   try {
     const currentSlug = req.params.slug;
     const article = await Article.findOne({ slug: currentSlug })
-      .populate("comments")
+      .populate({
+        path: "comments",
+        populate: {
+          path: "author",
+          model: "Users",
+        },
+      })
       .exec();
-    const comments = await article.comments;
-    res.json({ comments });
+    res.json(article);
   } catch (e) {
     console.log(e);
   }
@@ -116,26 +121,31 @@ router.post("/:slug/comment", auth, async (req, res) => {
       { $push: { comments: comment._id } },
       { new: true }
     );
-    res.status(200).json(formatArticle(article, comment.author));
+    const currentUser = await User.findById(req.user._doc._id);
+    res.status(201).json(formatComment(comment, comment.author, currentUser));
   } catch (e) {
     console.log(e);
   }
 });
 
-router.delete("/:slug/comments/:id", auth, async (req, res) => {
+router.delete("/:slug/comments/:id", auth, async (req, res, next) => {
   try {
     const userSlug = req.params.slug;
     const commentId = req.params.id;
-    const article = await Article.findOneAndUpdate(
-      { slug: userSlug },
-      { $pull: { comments: commentId } },
-      { new: true }
-    );
-    const comment = await Comment.findByIdAndDelete(commentId);
-    console.log(article);
-    res.json(comment);
-  } catch (e) {
-    console.log(e);
+    const commentData = Comment.findById(commentId);
+
+    if (commentData.author == req.user._doc._id) {
+      const article = await Article.findOneAndUpdate(
+        { slug: userSlug },
+        { $pull: { comments: commentId } },
+        { new: true }
+      );
+      const comment = await Comment.findByIdAndDelete(commentId);
+      if (!comment) return res.status(404).send("Invalid Request");
+      res.status(200).json("Comment Deleted Successfully..");
+    }
+  } catch (err) {
+    next(err);
   }
 });
 
@@ -166,9 +176,9 @@ router.delete("/:slug/favorite", auth, async (req, res) => {
 });
 
 function formatArticle(article, author, loggedUserID = null) {
-  //const isLoggedUserIsFollowing = author.followings.includes(loggedUserID);
+  const isLoggedUserIsFollowing = author.followings.includes(loggedUserID);
   //const isLoggedUserIsFollower = author.followers.includes(loggedUserID);
-  const isFavoritesByUser = author.favorites.includes(article.id);
+  const isFavoriteByUser = author.favorites.includes(article.id);
   return {
     slug: article.slug,
     title: article.title,
@@ -177,12 +187,29 @@ function formatArticle(article, author, loggedUserID = null) {
     tagList: article.tagList,
     createdAt: article.createdAt,
     updatedAt: article.updatedAt,
-    favorited: isFavoritesByUser,
+    favorited: isFavoriteByUser,
     favoritesCount: article.favoritesCount,
     author: {
       username: author.username,
       bio: author.bio,
       image: author.image,
+      following: isLoggedUserIsFollowing,
+    },
+  };
+}
+
+function formatComment(comment, author, currentUser = null) {
+  const isCurrentUserFollowing = currentUser.following.includes(author._id);
+  return {
+    id: comment.id,
+    createdAt: comment.createdAt,
+    updatedAt: comment.updatedAt,
+    body: comment.body,
+    author: {
+      username: author.name,
+      bio: author.bio,
+      image: author.image,
+      following: isCurrentUserFollowing,
     },
   };
 }
