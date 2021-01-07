@@ -15,14 +15,18 @@ router.get("/", auth, (req, res) => {
 });
 
 router.post("/", auth, async (req, res) => {
-  const newUserInfo = {
-    email: req.body.user.email,
-    bio: req.body.user.bio,
-    image: req.body.user.image,
-  };
-  let user = await User.findByIdAndUpdate(req.user._doc._id, newUserInfo, {
-    new: true,
-  });
-  res.send({ user });
+  try {
+    const newUserInfo = {
+      email: req.body.user.email,
+      bio: req.body.user.bio,
+      image: req.body.user.image,
+    };
+    let user = await User.findByIdAndUpdate(req.user._doc._id, newUserInfo, {
+      new: true,
+    });
+    res.status(200).send({ user });
+  } catch (e) {
+    next(e);
+  }
 });
 module.exports = router;

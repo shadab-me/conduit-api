@@ -6,19 +6,43 @@ const Article = require("../models/article");
 const slug = require("slug");
 const Comment = require("../models/comment");
 const user = require("../models/user");
+const article = require("../models/article");
 
-router.get("/", async (req, res) => {
+router.get("/", async (req, res, next) => {
+  let limit = 10;
+  const query = req.query;
   try {
-    let articles = await Article.find({})
-      .populate("author", ["username", "bio", "image", "following"])
-      .exec();
-    res.json({ articles });
+    const articles = await Article.find({}).populate("author");
+    res.status(200).json({
+      articles: articles.map((article) =>
+        formatArticle(article, article.author)
+      ),
+    });
   } catch (e) {
-    console.log(e);
+    next(e);
   }
 });
 
-router.post("/", auth, async (req, res) => {
+router.get("/feed", auth, async (req, res, next) => {
+  const limit = req.query.limit;
+  const skip = req.query.offset;
+  try {
+    const articles = await Article.find({ author: req.user._doc._id })
+      .sort({ createdAt: "desc" })
+      .skip(+skip)
+      .limit(+limit)
+      .populate("author");
+    res.status(200).json({
+      articles: articles.map((article) =>
+        formatArticle(article, article.author)
+      ),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.post("/", auth, async (req, res, next) => {
   try {
     let slugDes = slug(req.body.article.title, {
       replacement: "-",
@@ -32,31 +56,36 @@ router.post("/", auth, async (req, res) => {
       body: req.body.article.body,
       tagList: req.body.article.tagList,
     };
-    console.log(articleInfo);
     let author = req.user._doc._id;
-    const article = await (await Article.create({ ...articleInfo, author }))
-      .populate("author", ["username", "bio", "image", "following"])
-      .execPopulate();
-    res.send({ article });
+    const article = await (
+      await Article.create({ ...articleInfo, author })
+    ).execPopulate("author", ["username", "bio", "image", "following"]);
+    res.status(201).send(formatArticle(article, article.author));
   } catch (e) {
-    res.send(e);
+    next(e);
   }
 });
-router.delete("/:slug", auth, async (req, res) => {
+router.delete("/:slug", auth, async (req, res, next) => {
   try {
     const slug = req.params.slug;
     const article = await Article.findOneAndDelete({ slug: slug });
-    res.send(article);
-    console.log(article);
+    res.status(200).json(formatArticle(article));
   } catch (e) {
-    console.log(e);
+    next(e);
   }
 });
 
 router.put("/:id", auth, async (req, res) => {
   const id = req.params.id;
-  const article = await Article.findByIdAndUpdate(id, req.body, { new: true });
-  res.json({ article });
+  try {
+    const article = await Article.findById(id);
+    if (article.author == req.user._doc.id) {
+      const art = await Article.findByIdAndUpdate(id, req.body);
+      res.status(200).json(formatArticle(article));
+    }
+  } catch (e) {
+    next(e);
+  }
 });
 
 // localhost:3000/articles/5ff586ab53de7837841037e4/comment
@@ -80,14 +109,13 @@ router.post("/:slug/comment", auth, async (req, res) => {
       body: req.body.comment.body,
       author: req.user._doc._id,
     });
-    console.log(comment);
     if (comment._id) {
       const article = await Article.findOneAndUpdate(
         { slug: currentSlug },
         { $push: { comments: comment._id } },
         { new: true }
       );
-      res.send(article);
+      res.status(200).json(formatArticle(article));
     }
   } catch (e) {
     console.log(e);
@@ -128,4 +156,24 @@ router.delete("/:slug/favorite", auth, async (req, res) => {
   });
   res.json(article);
 });
+
+function formatArticle(article, author, loggedUserID = null) {
+  //const isLoggedUserIsFollowing = author.followings.includes(loggedUserID);
+  //const isLoggedUserIsFollower = author.followers.includes(loggedUserID);
+  // const isFavoritesByUser = author.favorites.includes(article.id);
+  return {
+    slug: article.slug,
+    title: article.title,
+    description: article.description,
+    body: article.body,
+    tagList: article.tagList,
+    createdAt: article.createdAt,
+    updatedAt: article.updatedAt,
+    author: {
+      username: author.username,
+      bio: author.bio,
+      image: author.image,
+    },
+  };
+}
 module.exports = router;

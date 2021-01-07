@@ -21,7 +21,7 @@ router.post("/", async (req, res, next) => {
     next(e);
   }
 });
-router.post("/login", async (req, res) => {
+router.post("/login", async (req, res, next) => {
   try {
     const userInfo = {
       email: req.body.user.email,
@@ -29,6 +29,8 @@ router.post("/login", async (req, res) => {
     };
 
     let user = await User.findOne({ email: userInfo.email });
+    if (!user)
+      return res.status(400).json({ message: "User is Not Register." });
     if (user) {
       let result = await bcrypt.compare(userInfo.password, user.password);
       if (result) {
@@ -36,11 +38,11 @@ router.post("/login", async (req, res) => {
         req.user = { ...user, token };
         res.json({ user, token });
       } else {
-        res.json("Wrong Password");
+        res.status(400).json({ message: "Wrong Password" });
       }
     }
   } catch (e) {
-    console.log(e);
+    next(e);
   }
 });
 
