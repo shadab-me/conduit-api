@@ -4,14 +4,14 @@ var path = require("path");
 var cookieParser = require("cookie-parser");
 var logger = require("morgan");
 const auth = require("./middleware/auth");
-require("./db/connection");
 const usersRouter = require("./routes/users");
 const articlesRouter = require("./routes/articles");
 const profilesRouter = require("./routes/profile");
 const userRouter = require("./routes/user");
 const tagsRouter = require("./routes/tags");
 const slug = require("slug");
-
+require("./db/connection");
+require("dotenv").config();
 var app = express();
 
 // view engine setup

@@ -145,6 +145,9 @@ router.post("/:slug/favorite", auth, async (req, res) => {
   const currentUser = User.findByIdAndUpdate(req.user._doc._id, {
     $push: { favorites: article._id },
   });
+  const updateArticle = await Article.findByIdAndUpdate(article._id, {
+    favoritesCount: favoritesCount++,
+  });
   res.json(article);
 });
 
@@ -160,7 +163,7 @@ router.delete("/:slug/favorite", auth, async (req, res) => {
 function formatArticle(article, author, loggedUserID = null) {
   //const isLoggedUserIsFollowing = author.followings.includes(loggedUserID);
   //const isLoggedUserIsFollower = author.followers.includes(loggedUserID);
-  // const isFavoritesByUser = author.favorites.includes(article.id);
+  const isFavoritesByUser = author.favorites.includes(article.id);
   return {
     slug: article.slug,
     title: article.title,

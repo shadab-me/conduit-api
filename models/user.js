@@ -11,7 +11,6 @@ const userSchema = new mongoose.Schema(
     username: {
       type: String,
       required: true,
-      minlength: 6,
       maxlength: 25,
       unique: true,
     },
@@ -28,19 +27,21 @@ const userSchema = new mongoose.Schema(
       required: true,
       require,
     },
+    favorites: [{ type: mongoose.Schema.Types.ObjectId }],
     followers: [{ type: mongoose.Schema.Types.ObjectId }],
     following: [{ type: mongoose.Schema.Types.ObjectId }],
   },
   { timestamps: true }
 );
+
 userSchema.pre("save", async function (next) {
   let user = this;
   if (user.password) {
     try {
       this.password = await bcrypt.hash(this.password, 8);
       next;
-    } catch (e) {
-      console.log(e);
+    } catch (err) {
+      next(err);
     }
   }
 });

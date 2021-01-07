@@ -25,8 +25,8 @@ router.post("/", auth, async (req, res) => {
       new: true,
     });
     res.status(200).send({ user });
-  } catch (e) {
-    next(e);
+  } catch (err) {
+    next(err);
   }
 });
 module.exports = router;

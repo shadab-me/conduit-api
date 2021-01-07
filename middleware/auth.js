@@ -3,7 +3,7 @@ const User = require("../models/user");
 async function auth(req, res, next) {
   try {
     let token = await req.header("Authorization").replace("Bearer", "");
-    let decode = await jwt.decode(token, "thisismy");
+    let decode = await jwt.decode(token, process.env.KEY);
     let user = await User.findById(decode.userId);
     if (!user) {
       throw new Error();
