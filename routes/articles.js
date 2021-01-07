@@ -5,7 +5,7 @@ const auth = require("../middleware/auth");
 const Article = require("../models/article");
 const slug = require("slug");
 const Comment = require("../models/comment");
-const user = require("../models/user");
+const User = require("../models/user");
 const article = require("../models/article");
 
 router.get("/", async (req, res, next) => {
@@ -48,7 +48,6 @@ router.post("/", auth, async (req, res, next) => {
       replacement: "-",
       lower: true,
     });
-
     const articleInfo = {
       slug: slugDes,
       title: req.body.article.title,
@@ -60,7 +59,7 @@ router.post("/", auth, async (req, res, next) => {
     const article = await (
       await Article.create({ ...articleInfo, author })
     ).execPopulate("author", ["username", "bio", "image", "following"]);
-    res.status(201).send(formatArticle(article, article.author));
+    res.status(201).send({ article });
   } catch (e) {
     next(e);
   }
@@ -105,18 +104,19 @@ router.get("/:slug/comments", auth, async (req, res) => {
 router.post("/:slug/comment", auth, async (req, res) => {
   try {
     let currentSlug = req.params.slug;
-    const comment = await Comment.create({
-      body: req.body.comment.body,
-      author: req.user._doc._id,
-    });
-    if (comment._id) {
-      const article = await Article.findOneAndUpdate(
-        { slug: currentSlug },
-        { $push: { comments: comment._id } },
-        { new: true }
-      );
-      res.status(200).json(formatArticle(article));
-    }
+    let comment = await (
+      await Comment.create({
+        body: req.body.comment.body,
+        author: req.user._doc._id,
+      })
+    ).execPopulate("author");
+
+    const article = await Article.findOneAndUpdate(
+      { slug: currentSlug },
+      { $push: { comments: comment._id } },
+      { new: true }
+    );
+    res.status(200).json(formatArticle(article, comment.author));
   } catch (e) {
     console.log(e);
   }
@@ -139,16 +139,21 @@ router.delete("/:slug/comments/:id", auth, async (req, res) => {
   }
 });
 
-router.post("/:slug/favorite", auth, async (req, res) => {
+router.post("/:slug/favorite", auth, async (req, res, next) => {
   const slug = req.params.slug;
   const article = await Article.findOne({ slug: slug });
-  const currentUser = User.findByIdAndUpdate(req.user._doc._id, {
-    $push: { favorites: article._id },
+  if (!article) return next({ message: "Article is Not Found" });
+  const currentUser = await User.findByIdAndUpdate(req.user._doc._id, {
+    $addToSet: { favorites: article._id },
   });
-  const updateArticle = await Article.findByIdAndUpdate(article._id, {
-    favoritesCount: favoritesCount++,
-  });
-  res.json(article);
+  const updateArticle = await Article.findByIdAndUpdate(
+    article._id,
+    {
+      $inc: { favoritesCount: 1 },
+    },
+    { new: true }
+  );
+  res.json(updateArticle);
 });
 
 router.delete("/:slug/favorite", auth, async (req, res) => {
@@ -172,6 +177,8 @@ function formatArticle(article, author, loggedUserID = null) {
     tagList: article.tagList,
     createdAt: article.createdAt,
     updatedAt: article.updatedAt,
+    favorited: isFavoritesByUser,
+    favoritesCount: article.favoritesCount,
     author: {
       username: author.username,
       bio: author.bio,

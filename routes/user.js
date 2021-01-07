@@ -4,14 +4,18 @@ const auth = require("../middleware/auth");
 const User = require("../models/user");
 
 router.get("/", auth, (req, res) => {
-  const user = {
-    email: req.user._doc.email,
-    token: req.user.token,
-    username: req.user._doc.username,
-    bio: req.user._doc.bio,
-    image: req.user._doc.image,
-  };
-  res.json({ user });
+  try {
+    const user = {
+      email: req.user._doc.email,
+      token: req.user.token,
+      username: req.user._doc.username,
+      bio: req.user._doc.bio,
+      image: req.user._doc.image,
+    };
+    res.status(200).json({ user });
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.post("/", auth, async (req, res) => {
