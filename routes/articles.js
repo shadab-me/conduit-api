@@ -67,8 +67,8 @@ router.get("/feed", auth, async (req, res, next) => {
         formatArticle(article, article.author)
       ),
     });
-  } catch (e) {
-    next(e);
+  } catch (err) {
+    next(err);
   }
 });
 
@@ -85,6 +85,7 @@ router.post("/", auth, async (req, res, next) => {
       body: req.body.article.body,
       tagList: req.body.article.tagList,
     };
+
     let author = req.user._doc._id;
     const article = await (
       await Article.create({ ...articleInfo, author })
@@ -94,6 +95,7 @@ router.post("/", auth, async (req, res, next) => {
     next(e);
   }
 });
+
 router.delete("/:slug", auth, async (req, res, next) => {
   try {
     const slug = req.params.slug;

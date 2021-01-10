@@ -11,7 +11,7 @@ router.get("/:username", auth, async (req, res) => {
     const logInUser = await User.findById(req.user._doc._id);
     res.status(200).json(profile(userProfile, logInUser));
   } catch (err) {
-    console.log(err);
+    next(err);
   }
 });
 

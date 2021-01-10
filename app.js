@@ -24,6 +24,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
+app.get("/", (req, res) => {
+  res.json("This Is conduit by shadab ali");
+});
 app.use("/api/users", usersRouter);
 app.use("/api/articles", articlesRouter);
 app.use("/api/profiles", profilesRouter);
