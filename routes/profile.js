@@ -44,8 +44,8 @@ router.post("/:username/follow", auth, async (req, res) => {
         res.json("Already following");
       }
     }
-  } catch (e) {
-    res.json(e);
+  } catch (err) {
+    res.json(err);
   }
 });
 
