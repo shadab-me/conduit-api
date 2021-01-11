@@ -57,14 +57,17 @@ router.get("/feed", auth, async (req, res, next) => {
   const limit = req.query.limit;
   const skip = req.query.offset;
   try {
-    const articles = await Article.find({ author: req.user._doc._id })
+    const user = req.user._doc;
+    const userFeed = await Article.find({})
+      .where("author")
+      .in([...user.followings, user._id])
       .sort({ createdAt: "desc" })
-      .skip(+skip)
-      .limit(+limit)
+      .skip(+offset)
+      .limit(+limitArticle)
       .populate("author");
     res.status(200).json({
-      articles: articles.map((article) =>
-        formatArticle(article, article.author)
+      articles: userFeed.map((article) =>
+        formatArticle(article, article.author, user.id)
       ),
     });
   } catch (err) {
