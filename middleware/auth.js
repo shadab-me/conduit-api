@@ -1,0 +1,17 @@
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+async function auth(req, res, next) {
+  try {
+    let token = await req.header("Authorization").replace("Bearer", "");
+    let decode = await jwt.decode(token, process.env.KEY);
+    let user = await User.findById(decode.userId);
+    if (!user) {
+      next({ message: "token is not valid" });
+    }
+    req.user = { ...user, token };
+    next();
+  } catch (e) {
+    res.status(401).send({ error: "Please authenticate" });
+  }
+}
+module.exports = auth;
