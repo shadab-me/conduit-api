@@ -56,8 +56,10 @@ router.get("/", async (req, res, next) => {
 router.get("/:slug", async (req, res, next) => {
   try {
     const userSlug = req.params.slug;
-    const article = await Article.findOne({ slug: userSlug });
-    res.status(200).json(article);
+    const article = await Article.findOne({ slug: userSlug }).populate(
+      "author"
+    );
+    res.status(200).json(formatArticle(article, article.author));
   } catch (err) {
     next(err);
   }
@@ -68,7 +70,6 @@ router.get("/feed", auth, async (req, res, next) => {
   const skip = req.query.offset;
   try {
     const user = req.user._doc;
-    console.log(req.user);
     const userFeed = await Article.find({})
       .where("author")
       .in([...user.followings, user._id])
@@ -147,12 +148,12 @@ router.get("/:slug/comments", async (req, res) => {
       })
       .exec();
     res.json(article.comments);
-  } catch (e) {
-    console.log(e);
+  } catch (err) {
+    next(err);
   }
 });
 
-router.post("/:slug/comment", auth, async (req, res) => {
+router.post("/:slug/comment", auth, async (req, res, next) => {
   try {
     let currentSlug = req.params.slug;
     let comment = await (
@@ -169,8 +170,8 @@ router.post("/:slug/comment", auth, async (req, res) => {
     );
     const currentUser = await User.findById(req.user._doc._id);
     res.status(201).json(formatComment(comment, comment.author, currentUser));
-  } catch (e) {
-    console.log(e);
+  } catch (err) {
+    next(err);
   }
 });
 
@@ -178,9 +179,8 @@ router.delete("/:slug/comments/:id", auth, async (req, res, next) => {
   try {
     const userSlug = req.params.slug;
     const commentId = req.params.id;
-    const commentData = Comment.findById(commentId);
-
-    if (commentData.author == req.user._doc._id) {
+    const commentData = await Comment.findById(commentId);
+    if (commentData.author.toString() == req.user._doc._id.toString()) {
       const article = await Article.findOneAndUpdate(
         { slug: userSlug },
         { $pull: { comments: commentId } },

@@ -13,8 +13,11 @@ router.post("/", async (req, res, next) => {
     };
 
     let user = await User.create(userInfo);
-    console.log(user);
-    res.status(201).json(formatUser(user));
+    if (user) {
+      let token = jwt.sign({ userId: user._id }, process.env.KEY);
+      req.user = { ...user, token };
+      res.status(201).json(formatUser(user, token));
+    }
   } catch (err) {
     next(err);
   }
@@ -34,7 +37,7 @@ router.post("/login", async (req, res, next) => {
       if (result) {
         let token = jwt.sign({ userId: user._id }, process.env.KEY);
         req.user = { ...user, token };
-        res.json(formatUser(user, token));
+        res.status(200).json(formatUser(user, token));
       } else {
         res.status(400).json({ message: "Wrong Password" });
       }
